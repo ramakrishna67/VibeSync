@@ -1,19 +1,27 @@
+"use client";
 import { Button } from "@/components/ui/button";
-import { MusicIcon } from "lucide-react";
+import { MusicIcon, Loader2 } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
+import { useState } from "react";
 
 export default function Home() {
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleSpotifyLogin = () => {
+    window.location.href = "/api/auth"; // Redirects to Spotify login
+  };
+
   return (
     <div className="flex flex-col min-h-screen">
       <header className="border-b">
         <div className="container flex h-16 items-center px-4 sm:px-6 lg:px-8">
           <div className="flex items-center gap-2">
             <MusicIcon className="h-6 w-6 text-primary" />
-            <span className="text-xl font-bold">Vibez</span>
+            <span className="text-xl font-bold">VibeSync</span>
           </div>
           <nav className="ml-auto flex gap-4 sm:gap-6">
-            <Link href="/login" className="text-sm font-medium">
+            <Link href="/api/auth" className="text-sm font-medium">
               Login
             </Link>
             <Link href="/about" className="text-sm font-medium">
@@ -37,30 +45,35 @@ export default function Home() {
                   </p>
                 </div>
                 <div className="flex flex-col gap-2 min-[400px]:flex-row">
-                  <Link href="/login">
-                    <Button size="lg" className="gap-1">
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="24"
-                        height="24"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        className="h-5 w-5"
-                      >
-                        <circle cx="12" cy="12" r="10" />
-                        <circle cx="12" cy="12" r="4" />
-                        <path d="M12 6v2" />
-                        <path d="M12 16v2" />
-                        <path d="M6 12h2" />
-                        <path d="M16 12h2" />
-                      </svg>
-                      Connect with Spotify
-                    </Button>
-                  </Link>
+                  {/* <Link href="/dashboard" > */}
+                  <Button
+                    size="lg"
+                    className="gap-1"
+                    onClick={handleSpotifyLogin}
+                    disabled={isLoading}
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="24"
+                      height="24"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      className="h-5 w-5"
+                    >
+                      <circle cx="12" cy="12" r="10" />
+                      <circle cx="12" cy="12" r="4" />
+                      <path d="M12 6v2" />
+                      <path d="M12 16v2" />
+                      <path d="M6 12h2" />
+                      <path d="M16 12h2" />
+                    </svg>
+                    Connect with Spotify
+                  </Button>
+                  {/* </Link> */}
                   <Link href="/features">
                     <Button size="lg" variant="outline">
                       Explore Features

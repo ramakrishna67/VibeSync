@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+// import { useSpotifyAuth } from "@/lib/useSpotifyAuth";
 import {
   Search,
   Home,
@@ -22,6 +23,9 @@ import { MoodSearch } from "@/components/moodSearch";
 
 export default function DashboardPage() {
   const [searchQuery, setSearchQuery] = useState("");
+  // const access_token = useSpotifyAuth();
+  const [accessToken, setAccessToken] = useState<string | null>(null);
+  const [userName, setUserName] = useState<string | null>(null);
 
   return (
     <div className="flex h-screen flex-col">
@@ -29,7 +33,7 @@ export default function DashboardPage() {
         <div className="flex h-16 items-center px-4 sm:px-6 lg:px-8">
           <div className="flex items-center gap-2">
             <Music className="h-6 w-6 text-primary" />
-            <span className="text-xl font-bold">Vibez</span>
+            <span className="text-xl font-bold">VibeSync</span>
           </div>
           <div className="ml-auto flex items-center gap-4">
             <div className="relative w-full max-w-sm">
@@ -104,7 +108,7 @@ export default function DashboardPage() {
             </Link>
           </nav>
         </aside>
-        <main className="flex-1 overflow-auto">
+        <main className="flex-1 overflow-auto p-4">
           <div className="container py-6">
             <Tabs defaultValue="home">
               <TabsList className="mb-4">
@@ -115,7 +119,7 @@ export default function DashboardPage() {
               <TabsContent value="home" className="space-y-6">
                 <div>
                   <h2 className="text-2xl font-bold tracking-tight">
-                    Welcome back, John!
+                    Welcome back, {userName || "Gust"}
                   </h2>
                   <p className="text-muted-foreground">
                     Here's what's trending and recommended for you today.
