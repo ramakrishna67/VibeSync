@@ -5,7 +5,6 @@ import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-// import { useSpotifyAuth } from "@/lib/useSpotifyAuth";
 import {
   Search,
   Home,
@@ -21,11 +20,77 @@ import Image from "next/image";
 import { MusicPlayer } from "@/components/musicPlayer";
 import { MoodSearch } from "@/components/moodSearch";
 
+// Define the Playlist interface
+interface Playlist {
+  id: string;
+  name: string;
+  description: string;
+  coverUrl: string;
+}
+
 export default function DashboardPage() {
   const [searchQuery, setSearchQuery] = useState("");
-  // const access_token = useSpotifyAuth();
-  const [accessToken, setAccessToken] = useState<string | null>(null);
-  const [userName, setUserName] = useState<string | null>(null);
+  const [username, setUsername] = useState<string | null>(null);
+  const [playlists, setPlaylists] = useState<Playlist[]>([]); // State for user's playlists
+
+  // Fetch the user's profile data and playlists
+  useEffect(() => {
+    const fetchUserData = async () => {
+      try {
+        // Retrieve the access token from the /api/token endpoint
+        const tokenResponse = await fetch("/api/token");
+        const { access_token } = await tokenResponse.json();
+
+        if (!access_token) {
+          throw new Error("No access token found");
+        }
+
+        // Fetch the user's profile data from Spotify
+        const profileResponse = await fetch("https://api.spotify.com/v1/me", {
+          headers: {
+            Authorization: `Bearer ${access_token}`,
+          },
+        });
+
+        if (!profileResponse.ok) {
+          throw new Error("Failed to fetch user profile");
+        }
+
+        const profileData = await profileResponse.json();
+        setUsername(profileData.display_name || profileData.id); // Set the username
+
+        // Fetch the user's playlists
+        const playlistsResponse = await fetch(
+          "https://api.spotify.com/v1/me/playlists?limit=5",
+          {
+            headers: {
+              Authorization: `Bearer ${access_token}`,
+            },
+          }
+        );
+
+        if (!playlistsResponse.ok) {
+          const errorData = await playlistsResponse.json(); // Log the error response
+          console.error("Spotify API Error:", errorData);
+          throw new Error("Failed to fetch playlists");
+        }
+
+        const playlistsData = await playlistsResponse.json();
+        const userPlaylists = playlistsData.items.map((item: any) => ({
+          id: item.id,
+          name: item.name,
+          description: item.description || "No description",
+          coverUrl: item.images[0]?.url || "/placeholder.svg",
+        }));
+
+        setPlaylists(userPlaylists); // Set the user's playlists
+      } catch (error) {
+        console.error("Error fetching user data:", error);
+      }
+    };
+
+    fetchUserData();
+  }, []);
 
   return (
     <div className="flex h-screen flex-col">
@@ -51,7 +116,7 @@ export default function DashboardPage() {
                 src="/placeholder.svg?height=40&width=40"
                 alt="User"
               />
-              <AvatarFallback>JD</AvatarFallback>
+              <AvatarFallback>{username?.charAt(0) || "U"}</AvatarFallback>
             </Avatar>
           </div>
         </div>
@@ -119,36 +184,45 @@ export default function DashboardPage() {
               <TabsContent value="home" className="space-y-6">
                 <div>
                   <h2 className="text-2xl font-bold tracking-tight">
-                    Welcome back, {userName || "Gust"}
+                    Welcome back, {username || "User"}
                   </h2>
                   <p className="text-muted-foreground">
                     Here's what's trending and recommended for you today.
                   </p>
                 </div>
                 <div className="space-y-4">
-                  <h3 className="text-lg font-medium">Recently Played</h3>
-                  <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
-                    {recentlyPlayed.map((item, index) => (
-                      <Card key={index} className="overflow-hidden">
-                        <div className="aspect-square relative">
-                          <Image
-                            src={item.coverUrl || "/placeholder.svg"}
-                            alt={item.title}
-                            fill
-                            className="object-cover transition-all hover:scale-105"
-                          />
-                        </div>
-                        <CardContent className="p-4">
-                          <h4 className="font-medium line-clamp-1">
-                            {item.title}
-                          </h4>
-                          <p className="text-xs text-muted-foreground">
-                            {item.artist}
-                          </p>
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
+                  <h3 className="text-lg font-medium">Your Playlists</h3>
+                  {playlists.length > 0 ? (
+                    <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+                      {playlists.map((playlist) => (
+                        <Link
+                          key={playlist.id}
+                          href={`/dashboard/playlist/${playlist.id}`}
+                        >
+                          <Card className="overflow-hidden hover:bg-muted/50 transition-all">
+                            <div className="aspect-square relative">
+                              <Image
+                                src={playlist.coverUrl}
+                                alt={playlist.name}
+                                fill
+                                className="object-cover transition-all hover:scale-105"
+                              />
+                            </div>
+                            <CardContent className="p-4">
+                              <h4 className="font-medium line-clamp-1">
+                                {playlist.name}
+                              </h4>
+                              <p className="text-xs text-muted-foreground">
+                                {playlist.description}
+                              </p>
+                            </CardContent>
+                          </Card>
+                        </Link>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-muted-foreground">No playlists found.</p>
+                  )}
                 </div>
                 <div className="space-y-4">
                   <h3 className="text-lg font-medium">Made For You</h3>
@@ -158,7 +232,7 @@ export default function DashboardPage() {
                         <div className="flex gap-4 p-4">
                           <div className="h-16 w-16 flex-shrink-0 rounded-md overflow-hidden">
                             <Image
-                              src={playlist.coverUrl || "/placeholder.svg"}
+                              src={playlist.coverUrl}
                               alt={playlist.title}
                               width={64}
                               height={64}
@@ -194,7 +268,7 @@ export default function DashboardPage() {
                       <Card key={index} className="overflow-hidden">
                         <div className="aspect-square relative">
                           <Image
-                            src={item.coverUrl || "/placeholder.svg"}
+                            src={item.coverUrl}
                             alt={item.title}
                             fill
                             className="object-cover transition-all hover:scale-105"
@@ -224,34 +298,6 @@ export default function DashboardPage() {
     </div>
   );
 }
-
-const recentlyPlayed = [
-  {
-    title: "Blinding Lights",
-    artist: "The Weeknd",
-    coverUrl: "/placeholder.svg?height=200&width=200",
-  },
-  {
-    title: "As It Was",
-    artist: "Harry Styles",
-    coverUrl: "/placeholder.svg?height=200&width=200",
-  },
-  {
-    title: "Stay",
-    artist: "The Kid LAROI, Justin Bieber",
-    coverUrl: "/placeholder.svg?height=200&width=200",
-  },
-  {
-    title: "Heat Waves",
-    artist: "Glass Animals",
-    coverUrl: "/placeholder.svg?height=200&width=200",
-  },
-  {
-    title: "Bad Habits",
-    artist: "Ed Sheeran",
-    coverUrl: "/placeholder.svg?height=200&width=200",
-  },
-];
 
 const madeForYou = [
   {
