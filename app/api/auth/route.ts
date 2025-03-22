@@ -13,7 +13,7 @@ export async function GET() {
 
   // Store the code verifier securely in cookies
   const response = NextResponse.redirect(
-    `https://accounts.spotify.com/authorize?client_id=${clientId}&response_type=code&redirect_uri=${redirectUri}&code_challenge=${codeChallenge}&code_challenge_method=S256&scope=user-read-private user-read`
+    `https://accounts.spotify.com/authorize?client_id=${clientId}&response_type=code&redirect_uri=${redirectUri}&code_challenge=${codeChallenge}&code_challenge_method=S256&scope=user-read-private`
   );
 
   response.cookies.set("spotify_code_verifier", codeVerifier, {

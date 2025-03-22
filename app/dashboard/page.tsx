@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
@@ -29,6 +30,7 @@ interface Playlist {
 }
 
 export default function DashboardPage() {
+  const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
   const [username, setUsername] = useState<string | null>(null);
   const [playlists, setPlaylists] = useState<Playlist[]>([]); // State for user's playlists
@@ -111,13 +113,6 @@ export default function DashboardPage() {
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
             </div>
-            <Avatar>
-              <AvatarImage
-                src="/placeholder.svg?height=40&width=40"
-                alt="User"
-              />
-              <AvatarFallback>{username?.charAt(0) || "U"}</AvatarFallback>
-            </Avatar>
           </div>
         </div>
       </header>
@@ -197,7 +192,10 @@ export default function DashboardPage() {
                       {playlists.map((playlist) => (
                         <Link
                           key={playlist.id}
-                          href={`/dashboard/playlist/${playlist.id}`}
+                          href={{
+                            pathname: `/dashboard/playlist/${playlist.id}`,
+                            query: { data: JSON.stringify(playlist) }, // Pass playlist data
+                          }}
                         >
                           <Card className="overflow-hidden hover:bg-muted/50 transition-all">
                             <div className="aspect-square relative">
@@ -224,71 +222,6 @@ export default function DashboardPage() {
                     <p className="text-muted-foreground">No playlists found.</p>
                   )}
                 </div>
-                <div className="space-y-4">
-                  <h3 className="text-lg font-medium">Made For You</h3>
-                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                    {madeForYou.map((playlist, index) => (
-                      <Card key={index} className="overflow-hidden">
-                        <div className="flex gap-4 p-4">
-                          <div className="h-16 w-16 flex-shrink-0 rounded-md overflow-hidden">
-                            <Image
-                              src={playlist.coverUrl}
-                              alt={playlist.title}
-                              width={64}
-                              height={64}
-                              className="h-full w-full object-cover"
-                            />
-                          </div>
-                          <div className="flex flex-col justify-center">
-                            <h4 className="font-medium">{playlist.title}</h4>
-                            <p className="text-xs text-muted-foreground">
-                              {playlist.description}
-                            </p>
-                          </div>
-                        </div>
-                      </Card>
-                    ))}
-                  </div>
-                </div>
-              </TabsContent>
-              <TabsContent value="discover" className="space-y-6">
-                <div>
-                  <h2 className="text-2xl font-bold tracking-tight">
-                    Discover New Music
-                  </h2>
-                  <p className="text-muted-foreground">
-                    Explore new releases and recommendations based on your
-                    taste.
-                  </p>
-                </div>
-                <div className="space-y-4">
-                  <h3 className="text-lg font-medium">New Releases</h3>
-                  <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
-                    {newReleases.map((item, index) => (
-                      <Card key={index} className="overflow-hidden">
-                        <div className="aspect-square relative">
-                          <Image
-                            src={item.coverUrl}
-                            alt={item.title}
-                            fill
-                            className="object-cover transition-all hover:scale-105"
-                          />
-                        </div>
-                        <CardContent className="p-4">
-                          <h4 className="font-medium line-clamp-1">
-                            {item.title}
-                          </h4>
-                          <p className="text-xs text-muted-foreground">
-                            {item.artist}
-                          </p>
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
-                </div>
-              </TabsContent>
-              <TabsContent value="mood" className="space-y-6">
-                <MoodSearch />
               </TabsContent>
             </Tabs>
           </div>
@@ -298,49 +231,3 @@ export default function DashboardPage() {
     </div>
   );
 }
-
-const madeForYou = [
-  {
-    title: "Daily Mix 1",
-    description: "The Weeknd, Dua Lipa, Post Malone and more",
-    coverUrl: "/placeholder.svg?height=64&width=64",
-  },
-  {
-    title: "Discover Weekly",
-    description: "Your weekly mixtape of fresh music",
-    coverUrl: "/placeholder.svg?height=64&width=64",
-  },
-  {
-    title: "Release Radar",
-    description: "Catch all the latest music from artists you follow",
-    coverUrl: "/placeholder.svg?height=64&width=64",
-  },
-];
-
-const newReleases = [
-  {
-    title: "New Album Title 1",
-    artist: "Popular Artist 1",
-    coverUrl: "/placeholder.svg?height=200&width=200",
-  },
-  {
-    title: "New Album Title 2",
-    artist: "Popular Artist 2",
-    coverUrl: "/placeholder.svg?height=200&width=200",
-  },
-  {
-    title: "New Album Title 3",
-    artist: "Popular Artist 3",
-    coverUrl: "/placeholder.svg?height=200&width=200",
-  },
-  {
-    title: "New Album Title 4",
-    artist: "Popular Artist 4",
-    coverUrl: "/placeholder.svg?height=200&width=200",
-  },
-  {
-    title: "New Album Title 5",
-    artist: "Popular Artist 5",
-    coverUrl: "/placeholder.svg?height=200&width=200",
-  },
-];
