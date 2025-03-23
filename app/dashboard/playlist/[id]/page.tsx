@@ -1,8 +1,7 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useParams } from "next/navigation";
-import { Card, CardContent } from "@/components/ui/card";
 import Image from "next/image";
 import {
   Home,
@@ -25,6 +24,7 @@ interface Track {
   coverUrl: string;
   album?: string;
   duration: number;
+  type: string;
 }
 
 interface Playlist {
@@ -43,12 +43,13 @@ const formatDuration = (durationMs: number): string => {
 };
 
 export default function PlaylistPage() {
-  const params = useParams(); // Get the playlist ID from the URL
+  const params = useParams();
   const [playlist, setPlaylist] = useState<Playlist | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [embedHtml, setEmbedHtml] = useState<string>("");
+  const [selectedTrack, setSelectedTrack] = useState<Track | null>(null);
 
-  // Fetch all tracks in the playlist
   const fetchAllTracks = async (url: string, accessToken: string) => {
     let allTracks: Track[] = [];
 
@@ -71,20 +72,19 @@ export default function PlaylistPage() {
         coverUrl: item.track.album.images[0]?.url || "/placeholder.svg",
         album: item.track.album.name,
         duration: item.track.duration_ms,
+        type: "track", // Assuming all items are tracks
       }));
 
       allTracks = [...allTracks, ...playlistTracks];
-      url = data.next; // Update the URL to fetch the next page of tracks
+      url = data.next;
     }
 
     return allTracks;
   };
 
-  // Fetch the playlist details and tracks
   useEffect(() => {
     const fetchPlaylistData = async () => {
       try {
-        // Retrieve the access token from the /api/token endpoint
         const tokenResponse = await fetch("/api/token");
         const { access_token } = await tokenResponse.json();
 
@@ -92,7 +92,6 @@ export default function PlaylistPage() {
           throw new Error("No access token found");
         }
 
-        // Fetch the playlist details
         const playlistResponse = await fetch(
           `https://api.spotify.com/v1/playlists/${params.id}`,
           {
@@ -107,12 +106,9 @@ export default function PlaylistPage() {
         }
 
         const playlistData = await playlistResponse.json();
-
-        // Fetch all tracks in the playlist
         const initialUrl = `https://api.spotify.com/v1/playlists/${params.id}/tracks?limit=50`;
         const allTracks = await fetchAllTracks(initialUrl, access_token);
 
-        // Set the playlist data
         setPlaylist({
           id: playlistData.id,
           name: playlistData.name,
@@ -131,6 +127,39 @@ export default function PlaylistPage() {
 
     fetchPlaylistData();
   }, [params.id]);
+
+  const getSpotifyEmbed = useCallback(async (track: Track) => {
+    if (!track || !track.id) {
+      console.error("Invalid track object", track);
+      return;
+    }
+
+    setSelectedTrack(track);
+    setLoading(true);
+    setError(null);
+
+    try {
+      const type = track.type || "track";
+      const embedHtml = `<iframe
+          id="spotify-iframe"
+          src="https://open.spotify.com/embed/track/${track.id}?utm_source=generator&autoplay=1"
+          width="100%"
+          height="80"
+          frameBorder="0"
+          allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+          style="border-radius: 8px;"
+        ></iframe>`;
+
+      setEmbedHtml(embedHtml);
+    } catch (error: unknown) {
+      console.error("Error setting up Spotify embed:", error);
+      setError(
+        `Could not load Spotify player for "${track.name}". Please try again.`
+      );
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   return (
     <div className="flex h-screen flex-col overflow-hidden">
@@ -204,7 +233,7 @@ export default function PlaylistPage() {
             </Link>
           </nav>
         </aside>
-        <main className="flex-1 overflow-y-auto p-6">
+        <main className="flex-1 overflow-y-auto p-6 pb-24">
           {loading ? (
             <div className="animate-pulse">
               <div className="h-8 bg-muted rounded w-1/3 mb-4"></div>
@@ -221,17 +250,25 @@ export default function PlaylistPage() {
             <div className="text-red-500">{error}</div>
           ) : playlist ? (
             <>
+              <div>
+                <Image
+                  src={playlist.coverUrl}
+                  alt="playlist Image"
+                  height={100}
+                  width={100}
+                  priority
+                />
+              </div>
               <h1 className="text-2xl font-bold mb-6">{playlist.name}</h1>
               <p className="text-muted-foreground mb-6">
                 {playlist.description}
               </p>
-              {/* White line separator */}
               <div className="border-t border-gray-300 mb-6"></div>
 
               {/* Track list */}
               <div className="space-y-3">
                 {playlist.tracks.map(
-                  (track) =>
+                  (track, index) =>
                     track.name && (
                       <div
                         key={track.id}
@@ -256,11 +293,12 @@ export default function PlaylistPage() {
                         <div className="text-sm text-muted-foreground">
                           {track.album}
                         </div>
-                        {/* <div className="text-sm text-muted-foreground">
-                      {formatDuration(track.duration)}
-                    </div> */}
-                        <button className="p-2 rounded-full hover:bg-gray-100 transition-all">
-                          <PlayCircle className="h-6 w-6 text-primary" />
+                        <button
+                          className="p-2 rounded-full hover:bg-gray-100 transition-all"
+                          onClick={() => getSpotifyEmbed(track)}
+                          aria-label={`Play ${track.name}`}
+                        >
+                          <PlayCircle className="h-6 w-6" />
                         </button>
                       </div>
                     )
@@ -272,6 +310,12 @@ export default function PlaylistPage() {
           )}
         </main>
       </div>
+      {embedHtml && (
+        <div
+          className="spotify-embed w-full h-25 fixed-bottom p-4 bg-white"
+          dangerouslySetInnerHTML={{ __html: embedHtml }}
+        />
+      )}
     </div>
   );
 }
